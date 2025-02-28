@@ -58,7 +58,7 @@ Please check the `scripts` folder for the detailed hyperparameters.
 
 ## 4. Checkpoints
 
-We provide the checkpoints at [this HuggingFace link](https://huggingface.co/chao1224/AssembleFlow). Notice that some hyperparameters will give NaN results, so we just skip them.
+We provide the checkpoints at this [HuggingFace link](https://huggingface.co/chao1224/AssembleFlow). Notice that some hyperparameters will give NaN results, so we just skip them.
 
 ## Cite Us
 
