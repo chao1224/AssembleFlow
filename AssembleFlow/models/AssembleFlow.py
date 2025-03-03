@@ -166,7 +166,7 @@ class AssembleFlow(torch.nn.Module):
                 "v_dim": 12,
                 "num_heads": 4,
             })
-            self.velocity_function = EquivariantScoreNetwork_03(
+            self.velocity_function = Velocity_Molecule(
                 hidden_dim=self.hidden_dim,
                 ipa_config=ipa_config, flow_matcher=None
             )

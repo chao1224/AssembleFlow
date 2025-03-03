@@ -33,6 +33,7 @@ conda install -y -c pyg pytorch-scatter
 conda install -y -c pyg pytorch-sparse
 conda install -y -c pyg pytorch-cluster
 pip install pymatgen
+pip install easydict
 pip install -e .
 ```
 
