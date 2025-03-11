@@ -182,47 +182,6 @@ class AssembleFlow(torch.nn.Module):
 
         return coff_embeds
 
-    def get_output_01(self, x, sampled_timestep, position_t, atom2molecule, atom2cluster):
-        edge_index = radius_graph(position_t, r=self.cutoff, batch=atom2molecule)
-        device = x.device
-        row, col = edge_index
-        
-        time_attr = self.time_embed(timestep_embedding(sampled_timestep.squeeze(1), self.emb_dim))  # [N, d]
-
-        if self.model_3d == "PaiNN":
-            radius_edge_index = edge_index
-            _, atom_3d_repr = self.intra_model.forward_with_expanded_index(x, position_t, radius_edge_index, atom2molecule, return_node_repr=True)
-
-        # compute representations and positions for mass center
-        dim_size = atom2molecule.max().item() + 1
-
-        molecule_repr = scatter(atom_3d_repr, atom2molecule, dim=0, dim_size=dim_size, reduce="mean")
-        molecule_repr = molecule_repr + self.intra_time_emb_layers(time_attr)
-        molecule_position = scatter(position_t, atom2molecule, dim=0, dim_size=dim_size, reduce="mean")
-        molecule2cluster = torch.arange(dim_size).to(device) // 17
-        
-        edge_index = radius_graph(molecule_position, r=self.cluster_cutoff, batch=molecule2cluster)
-        index_i, index_j = edge_index
-
-        # construct geometric features
-        coord_diff, coord_cross, coord_vertical = coord2basis(pos_intra=molecule_position, index_intra=index_j, pos_center=molecule_position, index_center=index_i)  # [num_edge, 3] * 3
-        equivariant_basis = [coord_diff, coord_cross, coord_vertical]
-        edge_basis = torch.cat([coord_diff.unsqueeze(1), coord_cross.unsqueeze(1), coord_vertical.unsqueeze(1)], dim=1)  # [num_edge, 3, 3]
-        
-        r_i, r_j = molecule_position[index_i], molecule_position[index_j]  # [num_edge, 3]
-        coff_i = torch.einsum("abc,ac->ab", edge_basis, r_i)  # [num_edge, 3]
-        coff_j = torch.einsum("abc,ac->ab", edge_basis, r_j)  # [num_edge, 3]
-        embed_i = self.get_edge_embedding(coff_i)  # [num_edge, C]
-        embed_j = self.get_edge_embedding(coff_j)  # [num_edge, C]
-
-        edge_embed = torch.cat([embed_i, embed_j], dim=-1)
-        edge_attr = self.project(edge_embed)
-
-        velocity_translation, velocity_quaternion = self.velocity_function(
-            graph_attr=molecule_repr, edge_index=edge_index, edge_attr=edge_attr, time_attr=time_attr, equivariant_basis=equivariant_basis,
-        )
-        return velocity_translation, velocity_quaternion
-
     def get_output_02(self, x, sampled_timestep, position_t, atom2molecule, atom2cluster):
         edge_index = radius_graph(position_t, r=self.cutoff, batch=atom2molecule)
         device = x.device
